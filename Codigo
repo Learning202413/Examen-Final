@@ -1,1 +1,91 @@
+-- Crear una vista utilizando tres tablas
+CREATE VIEW Vista_Ordenes_Dev AS
+SELECT o.ID_de_pedido, o.Nombre_del_cliente, d.Estado, u.Gerente
+FROM Ordenes o
+JOIN Dev d ON o.ID_de_pedido = d.ID_de_pedido AND o.ID_de_fila = d.ID_de_fila
+JOIN Usuarios u ON o.Region = u.Region;
+
+-- Crear un procedimiento almacenado para modificar el ingreso de datos
+DELIMITER //
+CREATE PROCEDURE ModificarOrden(
+    IN pedido_id INT, IN fila_id INT, IN nueva_ganancia DECIMAL(10,4)
+)
+BEGIN
+    UPDATE Ordenes
+    SET Ganancia = nueva_ganancia
+    WHERE ID_de_pedido = pedido_id AND ID_de_fila = fila_id;
+END //
+DELIMITER ;
+
+-- Crear un disparador para verificar
+DELIMITER //
+CREATE TRIGGER VerificarNota
+BEFORE INSERT ON Ordenes
+FOR EACH ROW
+BEGIN
+    IF NEW.Ganancia < 0 OR NEW.Ganancia > 2000 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Ganancia fuera de rango (0-2000)';
+    END IF;
+END //
+DELIMITER ;
+
+-- Crear usuarios
+CREATE USER 'usuario1'@'localhost' IDENTIFIED BY 'password1';
+CREATE USER 'usuario2'@'localhost' IDENTIFIED BY 'password2';
+CREATE USER 'usuario3'@'localhost' IDENTIFIED BY 'password3';
+
+-- Asignar permisos a un usuario
+FLUSH PRIVILEGES;
+GRANT SELECT, INSERT, UPDATE, DELETE ON orden_bd.* TO 'usuario1'@'localhost';
+
+-- Crear una copia de seguridad de la base de datos
+-- En MySQL Workbench no puedes realizar backups con SQL, hazlo desde el menú "Data Export".
+
+-- Restaurar la base de datos
+-- Para restaurar usa "Data Import" desde el menú de herramientas de MySQL Workbench.
+
+-- Crear un espejo de la base de datos (Database Mirroring)
+-- Esto requiere configuración adicional del servidor MySQL.
+
+-- Replicación de la base de datos
+-- Esto requiere configuración adicional del servidor MySQL.
+
+ALTER TABLE Ordenes
+ADD COLUMN Encriptado VARBINARY(255);
+
+CREATE VIEW Seguridad_DNI AS
+SELECT ID_de_cliente, Nombre_del_cliente, Region
+FROM Ordenes;
+GRANT SELECT ON Seguridad_DNI TO 'usuario2'@'localhost';
+
+-- Seguridad a nivel de columna
+CREATE VIEW Seguridad_Columna AS
+SELECT ID_de_cliente, Nombre_del_cliente
+FROM Ordenes;
+GRANT SELECT ON Seguridad_Columna TO 'usuario2'@'localhost';
+
+ALTER TABLE Ordenes ADD COLUMN Encriptado VARBINARY(255);
+
+-- Configuración de auditoría para el seguimiento de acciones
+CREATE TABLE Auditoria (
+    ID INT AUTO_INCREMENT PRIMARY KEY,
+    Usuario VARCHAR(50),
+    Accion VARCHAR(100),
+    Fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+DELIMITER //
+CREATE TRIGGER AuditoriaTrigger
+AFTER INSERT ON Ordenes
+FOR EACH ROW
+BEGIN
+    INSERT INTO Auditoria (Usuario, Accion)
+    VALUES (USER(), 'INSERT en Ordenes');
+END //
+DELIMITER ;
+
+-- Configuración de memoria y disco duro
+-- Esto requiere configuraciones adicionales del servidor MySQL, como:
+-- SET GLOBAL innodb_buffer_pool_size = 512M;
+-- SET GLOBAL max_connections = 200;
+
 
